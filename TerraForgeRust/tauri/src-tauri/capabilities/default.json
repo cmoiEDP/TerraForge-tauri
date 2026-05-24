@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/acl/v1",
+  "identifier": "default",
+  "description": "Capability for the main window with required plugins",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "fs:default"
+  ]
+}
