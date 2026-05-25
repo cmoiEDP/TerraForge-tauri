@@ -29,6 +29,7 @@ const headerColors = {
   erode: "#6fb6a4",
   combine: "#9b7fb6",
   mask: "#b65f5f",
+  water: "#4aa3d9",
   output: "#5fb87a",
 };
 
@@ -172,11 +173,131 @@ export function OutputNode({ data, selected }) {
   );
 }
 
+// ─── Filter nodes ───
+export function BlurNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="combine" title="Blur" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-radius`} label="Radius" value={p.radius} min={1} max={12} step={1} onChange={(v) => data.onChange(upd(data, { radius: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-passes`} label="Passes" value={p.passes} min={1} max={5} step={1} onChange={(v) => data.onChange(upd(data, { passes: Math.round(v) }))} />
+    </NodeShell>
+  );
+}
+
+export function TerraceNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="shape" title="Terrace" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-steps`} label="Steps" value={p.steps} min={2} max={32} step={1} onChange={(v) => data.onChange(upd(data, { steps: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-sharpness`} label="Sharpness" value={p.sharpness} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { sharpness: v }))} />
+    </NodeShell>
+  );
+}
+
+export function CurveNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="combine" title="Curve" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-gamma`} label="Gamma" value={p.gamma} min={0.2} max={3.0} step={0.05} onChange={(v) => data.onChange(upd(data, { gamma: v }))} />
+      <NSlider testId={`node-${id}-gain`} label="Gain" value={p.gain} min={0.1} max={2.0} step={0.02} onChange={(v) => data.onChange(upd(data, { gain: v }))} />
+      <NSlider testId={`node-${id}-bias`} label="Bias" value={p.bias} min={-0.5} max={0.5} step={0.01} onChange={(v) => data.onChange(upd(data, { bias: v }))} />
+    </NodeShell>
+  );
+}
+
+export function ClipNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="mask" title="Clip" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-min`} label="Min" value={p.min} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { min: v }))} />
+      <NSlider testId={`node-${id}-max`} label="Max" value={p.max} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { max: v }))} />
+    </NodeShell>
+  );
+}
+
+export function NormalizeNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="combine" title="Normalize" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-lo`} label="Lo" value={p.lo} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { lo: v }))} />
+      <NSlider testId={`node-${id}-hi`} label="Hi" value={p.hi} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { hi: v }))} />
+    </NodeShell>
+  );
+}
+
+export function WarpNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="noise" title="Warp" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-amount`} label="Amount" value={p.amount} min={0} max={0.2} step={0.005} onChange={(v) => data.onChange(upd(data, { amount: v }))} />
+      <NSlider testId={`node-${id}-freq`} label="Frequency" value={p.frequency} min={0.001} max={0.05} step={0.001} onChange={(v) => data.onChange(upd(data, { frequency: v }))} />
+      <NSlider testId={`node-${id}-warpseed`} label="Seed" value={p.seed} min={0} max={9999} step={1} onChange={(v) => data.onChange(upd(data, { seed: Math.round(v) }))} />
+    </NodeShell>
+  );
+}
+
+// ─── Water simulation nodes ───
+
+export function RiverNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="water" title="River" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-threshold`} label="Flow Thresh" value={p.threshold} min={10} max={500} step={5} onChange={(v) => data.onChange(upd(data, { threshold: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-depth`} label="Carve Depth" value={p.depth} min={0} max={0.2} step={0.005} onChange={(v) => data.onChange(upd(data, { depth: v }))} />
+      <NSlider testId={`node-${id}-width`} label="Width" value={p.width} min={1} max={6} step={1} onChange={(v) => data.onChange(upd(data, { width: Math.round(v) }))} />
+    </NodeShell>
+  );
+}
+
+export function LakeNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="water" title="Lake" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-fillDepth`} label="Fill Depth" value={p.fillDepth} min={0.005} max={0.15} step={0.005} onChange={(v) => data.onChange(upd(data, { fillDepth: v }))} />
+      <NSlider testId={`node-${id}-minArea`} label="Min Area" value={p.minArea} min={4} max={200} step={1} onChange={(v) => data.onChange(upd(data, { minArea: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-lkdepth`} label="Carve" value={p.depth} min={0} max={0.1} step={0.005} onChange={(v) => data.onChange(upd(data, { depth: v }))} />
+    </NodeShell>
+  );
+}
+
+export function SeaNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="water" title="Sea" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-level`} label="Sea Level" value={p.level} min={0} max={0.6} step={0.01} onChange={(v) => data.onChange(upd(data, { level: v }))} />
+      <label className="flex items-center gap-1.5 mt-1 cursor-pointer nodrag" onMouseDown={(e) => e.stopPropagation()}>
+        <input type="checkbox" className="nodrag" checked={p.flatten} onChange={(e) => data.onChange(upd(data, { flatten: e.target.checked }))} data-testid={`node-${id}-flatten`} />
+        <span className="mono text-[9px] uppercase tracking-wider">Flatten Below</span>
+      </label>
+    </NodeShell>
+  );
+}
+
+export function RainNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="water" title="Rain" hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-intensity`} label="Intensity" value={p.intensity} min={0} max={3} step={0.05} onChange={(v) => data.onChange(upd(data, { intensity: v }))} />
+      <NSlider testId={`node-${id}-erodew`} label="Erode Weight" value={p.erodeWeight} min={0} max={0.1} step={0.002} onChange={(v) => data.onChange(upd(data, { erodeWeight: v }))} />
+    </NodeShell>
+  );
+}
+
 export const NODE_COMPONENTS = {
   noise: NoiseNode,
   shape: ShapeNode,
   erode: ErodeNode,
   combine: CombineNode,
   mask: MaskNode,
+  blur: BlurNode,
+  terrace: TerraceNode,
+  curve: CurveNode,
+  clip: ClipNode,
+  normalize: NormalizeNode,
+  warp: WarpNode,
+  river: RiverNode,
+  lake: LakeNode,
+  sea: SeaNode,
+  rain: RainNode,
   output: OutputNode,
 };

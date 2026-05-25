@@ -121,18 +121,18 @@ export default function TerrainStudio() {
 
   const yieldUI = () => new Promise((r) => setTimeout(r, 0));
 
-  // ─── Live preview (debounced low-res generation) ───
-  // Resolution follows the user-selected mesh size (capped 512) so changing the mesh dropdown actually adds detail.
+  // ─── Live preview (debounced) ───
+  // Heightmap content is INVARIANT of preview mesh density: live preview always at PREVIEW_SIZE.
+  // The mesh dropdown only controls the 3D viewer's downsample target.
   useEffect(() => {
     if (tab !== "terrain" || !livePreview) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    const previewRes = Math.max(PREVIEW_SIZE, Math.min(512, previewMeshSize));
     debounceRef.current = setTimeout(() => {
       try {
         const data = generateHeightmap({
-          size: previewRes,
+          size: PREVIEW_SIZE,
           seed: genParams.seed,
-          scale: genParams.scale * (genParams.size / previewRes) * 0.5,
+          scale: genParams.scale * (genParams.size / PREVIEW_SIZE) * 0.5,
           octaves: Math.min(genParams.octaves, 6),
           persistence: genParams.persistence,
           lacunarity: 2.0,
@@ -140,14 +140,14 @@ export default function TerrainStudio() {
           warp: genParams.warp,
           exponent: genParams.exponent,
         });
-        if (currentPreset) applyPresetShape(currentPreset, data, previewRes);
-        setPreviewData({ data, size: previewRes });
+        if (currentPreset) applyPresetShape(currentPreset, data, PREVIEW_SIZE);
+        setPreviewData({ data, size: PREVIEW_SIZE });
       } catch (e) { /* noop */ }
     }, 180);
     return () => debounceRef.current && clearTimeout(debounceRef.current);
   }, [genParams.seed, genParams.scale, genParams.octaves, genParams.persistence,
       genParams.ridgeBlend, genParams.warp, genParams.exponent, genParams.size,
-      livePreview, tab, currentPreset, previewMeshSize]);
+      livePreview, tab, currentPreset]);
 
   const handlePreset = (id) => {
     const p = getPresetParams(id);
@@ -487,7 +487,7 @@ export default function TerrainStudio() {
           <span className="label-mono">mesh</span>
           <select
             className="select-mono"
-            style={{ width: 78, padding: "4px 6px" }}
+            style={{ width: 86, padding: "4px 6px" }}
             value={previewMeshSize}
             onChange={(e) => setPreviewMeshSize(parseInt(e.target.value, 10))}
             data-testid="preview-mesh-size"
@@ -499,6 +499,11 @@ export default function TerrainStudio() {
             <option value={512}>512</option>
             <option value={768}>768</option>
             <option value={1024}>1024</option>
+            <option value={2048}>2048 ⚠</option>
+            <option value={4096}>4096 ⚠⚠</option>
+            <option value={8192}>8192 ⚠⚠⚠</option>
+            <option value={16384}>16384 💀</option>
+            <option value={30720}>30720 💀💀</option>
           </select>
           <span className="label-mono">height</span>
           <input type="range" className="slim" min={0.05} max={0.9} step={0.01} value={heightScale} onChange={(e) => setHeightScale(parseFloat(e.target.value))} style={{ width: 100 }} data-testid="height-scale" />
@@ -507,8 +512,33 @@ export default function TerrainStudio() {
 
       {/* MAIN */}
       {tab === "graph" ? (
-        <main className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_360px]" style={{ minHeight: 0 }}>
-          <section className="panel m-3 overflow-hidden" data-testid="graph-section">
+        <main className="flex-1 grid grid-rows-[minmax(280px,42vh)_1fr] grid-cols-1 xl:grid-cols-[1fr_300px]" style={{ minHeight: 0 }}>
+          {/* TOP — 3D preview (spans both columns at xl) */}
+          <section className="panel m-3 mb-1 overflow-hidden xl:col-span-2 relative" data-testid="graph-preview">
+            <div className="absolute top-2 left-3 z-10 panel px-2 py-1 mono text-[10px] text-[var(--accent)]">
+              ● GRAPH OUTPUT {graphResult ? `· ${graphResult.size}×${graphResult.size}` : "· empty"}
+            </div>
+            {graphResult ? (
+              <TerrainViewer3D
+                data={graphResult.data}
+                size={graphResult.size}
+                heightScale={heightScale}
+                wireframe={wireframe}
+                biomeParams={biomeParams}
+                previewSize={previewMeshSize}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-center">
+                <div>
+                  <div className="num text-[10px] text-[var(--ink-mute)] mb-2">[ empty viewport ]</div>
+                  <h3 className="text-xl text-[var(--ink-dim)]">Build a node graph below and hit <em className="text-[var(--accent)] not-italic">Run Graph</em></h3>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* BOTTOM — Node graph editor */}
+          <section className="panel m-3 mt-1 overflow-hidden" data-testid="graph-section">
             <NodeGraph
               size={graphSize}
               onResult={(r) => { setGraphResult(r); }}
@@ -516,29 +546,9 @@ export default function TerrainStudio() {
               stage={stage} setStage={setStage}
             />
           </section>
-          <aside className="hidden xl:flex flex-col gap-3 m-3" style={{ maxHeight: "calc(100vh - 140px)" }}>
-            <div className="panel p-3 flex-shrink-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="label-mono">// Graph Output</div>
-                <span className="num text-[9px] text-[var(--ink-mute)]">terminal node</span>
-              </div>
-              <div className="aspect-square bg-[var(--bg-2)] border border-[var(--line)] overflow-hidden">
-                {graphResult ? (
-                  <TerrainViewer3D
-                    data={graphResult.data}
-                    size={graphResult.size}
-                    heightScale={heightScale}
-                    wireframe={wireframe}
-                    biomeParams={biomeParams}
-                    previewSize={previewMeshSize}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center num text-[10px] text-[var(--ink-mute)]">
-                    [ run graph to preview ]
-                  </div>
-                )}
-              </div>
-            </div>
+
+          {/* RIGHT — controls + stats */}
+          <aside className="hidden xl:flex flex-col gap-3 m-3 mt-1" style={{ maxHeight: "calc(58vh - 24px)" }}>
             <div className="panel p-4 flex-shrink-0">
               <div className="label-mono mb-2">// Graph Output Size</div>
               <select className="select-mono" value={graphSize} onChange={(e) => setGraphSize(parseInt(e.target.value, 10))} data-testid="graph-size">
@@ -547,6 +557,9 @@ export default function TerrainStudio() {
                 <option value={1024}>1024  ·  1K</option>
                 <option value={2048}>2048  ·  2K</option>
                 <option value={4096}>4096  ·  4K</option>
+                <option value={8192}>8192  ·  8K ⚠</option>
+                <option value={16384}>16384 · 16K ⚠⚠</option>
+                <option value={30720}>30720 · 30K 💀 RIP RAM</option>
               </select>
               {graphResult && (
                 <button
@@ -678,7 +691,7 @@ export default function TerrainStudio() {
               wireframe={wireframe}
               biomeParams={biomeParams}
               roadOverlay={roadOverlay}
-              scatterOverlay={null}
+              scatterOverlay={scatterOverlayForViewer}
               previewSize={previewMeshSize}
               version={editVersion}
             />

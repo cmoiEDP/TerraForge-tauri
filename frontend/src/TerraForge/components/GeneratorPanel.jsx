@@ -44,7 +44,10 @@ export default function GeneratorPanel({ onGenerate, onErode, busy, params, setP
           <option value={512}>0512  ·  test</option>
           <option value={1024}>1024  ·  1K</option>
           <option value={2048}>2048  ·  2K</option>
-          <option value={4096}>4096  ·  4K — TARGET</option>
+          <option value={4096}>4096  ·  4K</option>
+          <option value={8192}>8192  ·  8K ⚠ slow</option>
+          <option value={16384}>16384 · 16K ⚠⚠ very slow</option>
+          <option value={30720}>30720 · 30K 💀 may crash</option>
         </select>
 
         <div className="flex flex-col gap-2">

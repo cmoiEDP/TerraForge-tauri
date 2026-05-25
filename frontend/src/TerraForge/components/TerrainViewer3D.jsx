@@ -192,11 +192,15 @@ export default function TerrainViewer3D({
       if (scatterOverlay) {
         const srcSize = scatterOverlay.sourceSize;
         const ratio = previewSizeClamped / srcSize;
+        // Larger dot radius so vegetation is actually visible on the mesh.
+        const dotR = Math.max(1, Math.floor(previewSizeClamped / 160));
         for (const layer of scatterOverlay.layers) {
           if (!layer.points) continue;
           ctx.fillStyle = layer.color;
           for (const [px, py] of layer.points) {
-            ctx.fillRect(Math.floor(px * ratio), Math.floor(py * ratio), 1, 1);
+            const cx = Math.floor(px * ratio);
+            const cy = Math.floor(py * ratio);
+            ctx.fillRect(cx - dotR, cy - dotR, dotR * 2 + 1, dotR * 2 + 1);
           }
         }
       }

@@ -56,6 +56,55 @@ export const PRESETS = [
     erosion: { iterations: 40000, erosion: 0.30, deposition: 0.30, inertia: 0.08 },
     biome: { waterLevel: 0.06, sandWidth: 0.04, grassMax: 0.55, rockMax: 0.85, slopeBias: 0.40 },
   },
+  // ─── New presets ───
+  {
+    id: "glacier",
+    name: "Glacier Valley",
+    tag: "ice · U-shape",
+    gen: { scale: 0.0017, octaves: 7, persistence: 0.48, ridgeBlend: 0.65, warp: 0.35, exponent: 1.4 },
+    erosion: { iterations: 95000, erosion: 0.50, deposition: 0.30, inertia: 0.06 },
+    biome: { waterLevel: 0.18, sandWidth: 0.02, grassMax: 0.25, rockMax: 0.55, slopeBias: 0.65 },
+  },
+  {
+    id: "savanna",
+    name: "Savanna",
+    tag: "dry · gentle",
+    gen: { scale: 0.0012, octaves: 4, persistence: 0.42, ridgeBlend: 0.05, warp: 0.30, exponent: 0.9 },
+    erosion: { iterations: 18000, erosion: 0.15, deposition: 0.45, inertia: 0.12 },
+    biome: { waterLevel: 0.04, sandWidth: 0.10, grassMax: 0.85, rockMax: 0.98, slopeBias: 0.25 },
+  },
+  {
+    id: "atoll",
+    name: "Atoll Ring",
+    tag: "lagoon · reef",
+    gen: { scale: 0.0035, octaves: 5, persistence: 0.45, ridgeBlend: 0.20, warp: 0.55, exponent: 1.1 },
+    erosion: { iterations: 12000, erosion: 0.18, deposition: 0.30, inertia: 0.09 },
+    biome: { waterLevel: 0.55, sandWidth: 0.10, grassMax: 0.78, rockMax: 0.92, slopeBias: 0.28 },
+  },
+  {
+    id: "badlands",
+    name: "Badlands",
+    tag: "eroded · spires",
+    gen: { scale: 0.0026, octaves: 8, persistence: 0.62, ridgeBlend: 0.50, warp: 0.18, exponent: 2.0 },
+    erosion: { iterations: 150000, erosion: 0.65, deposition: 0.10, inertia: 0.03 },
+    biome: { waterLevel: 0.02, sandWidth: 0.25, grassMax: 0.20, rockMax: 0.90, slopeBias: 0.55 },
+  },
+  {
+    id: "tundra",
+    name: "Tundra",
+    tag: "frozen · sparse",
+    gen: { scale: 0.0009, octaves: 4, persistence: 0.40, ridgeBlend: 0.08, warp: 0.10, exponent: 0.8 },
+    erosion: { iterations: 22000, erosion: 0.20, deposition: 0.35, inertia: 0.11 },
+    biome: { waterLevel: 0.10, sandWidth: 0.03, grassMax: 0.30, rockMax: 0.70, slopeBias: 0.45 },
+  },
+  {
+    id: "fjord",
+    name: "Fjord",
+    tag: "deep · vertical",
+    gen: { scale: 0.0022, octaves: 7, persistence: 0.55, ridgeBlend: 0.70, warp: 0.25, exponent: 2.1 },
+    erosion: { iterations: 110000, erosion: 0.55, deposition: 0.18, inertia: 0.05 },
+    biome: { waterLevel: 0.32, sandWidth: 0.02, grassMax: 0.42, rockMax: 0.80, slopeBias: 0.60 },
+  },
 ];
 
 export function getPresetParams(id) {
