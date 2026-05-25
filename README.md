@@ -2,6 +2,37 @@
 
 Native cross-platform desktop build of TerraForge. Uses the exact same React UI as the web app, with all heavy compute (noise / erosion / upscale / brush / road raster / biome splatmap / scatter / combine) routed through a Rust core via 14 `tf_*` Tauri commands.
 
+## ⚠️ Quick build (avoids the `frontendDist doesn't exist` error)
+
+The Tauri shell consumes `frontend/build/`. **Plain `cargo build` does NOT auto-generate it** — only `cargo tauri build` does. Three working options:
+
+### One-shot script (recommended)
+**Windows:**
+```powershell
+.\build.ps1            # release build
+.\build.ps1 -Dev       # dev mode (hot reload)
+```
+**macOS / Linux:**
+```bash
+./build.sh             # release
+./build.sh --dev       # dev mode
+```
+
+### Or manually — `cargo tauri build` (chains everything)
+```bash
+cargo install tauri-cli --version "^2"            # one-time
+cd TerraForgeRust/tauri/src-tauri
+cargo tauri build
+```
+
+### Or manually — plain `cargo build` (frontend must already be built)
+```bash
+cd frontend && yarn install && yarn build
+cd ../TerraForgeRust/tauri/src-tauri && cargo build --release
+```
+
+→ See `TerraForgeRust/BUILD.md` for the full troubleshooting reference.
+
 ## Why Tauri (and not the previous standalone egui desktop)
 
 The previous `terraforge-desktop` crate used eframe + egui and rendered a hillshade preview only — no real 3D viewer. **It has been removed.** Tauri reuses the React Three.js viewer, so the desktop app is feature-identical to the web app, but :
@@ -10,38 +41,21 @@ The previous `terraforge-desktop` crate used eframe + egui and rendered a hillsh
 - Native file dialogs for import / export
 - Full filesystem access for `.r16` and PNG writes without browser download prompts
 
-## Build
-
-### Prerequisites
+## Prerequisites
 - Rust toolchain (`rustup`) — https://rustup.rs
 - Node.js 18+ and Yarn
 - Platform deps :
-  - **Windows** : Visual Studio Build Tools (C++ workload) + WebView2 runtime (preinstalled on Win 11)
-  - **macOS** : Xcode Command Line Tools
+  - **Windows** : Visual Studio Build Tools 2022 (C++ workload) + WebView2 runtime (preinstalled on Win 11)
+  - **macOS** : Xcode Command Line Tools (`xcode-select --install`)
   - **Linux** : `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev build-essential curl wget file libssl-dev`
 
-```bash
-cargo install tauri-cli --version "^2"      # one-time
-cd frontend && yarn install && cd ..
-```
+## Build output locations
 
-### Dev (hot reload, React dev server + native shell)
-```bash
-cd TerraForgeRust/tauri/src-tauri
-cargo tauri dev
-```
-First start takes 1-2 min while Rust compiles dependencies. The React dev server is auto-launched at `localhost:3000` and embedded in the native window.
-
-### Release build (single distributable binary)
-```bash
-cd TerraForgeRust/tauri/src-tauri
-cargo tauri build
-```
-
-Output lands in `TerraForgeRust/target/release/bundle/` :
-- Windows : `.msi` + `.exe`
-- macOS : `.dmg` + `.app`
-- Linux : `.deb` + `.AppImage`
+| Platform | Files |
+|----------|-------|
+| Windows  | `TerraForgeRust/target/release/bundle/msi/*.msi` + `nsis/*.exe` |
+| macOS    | `TerraForgeRust/target/release/bundle/dmg/*.dmg` + `macos/*.app` |
+| Linux    | `TerraForgeRust/target/release/bundle/deb/*.deb` + `appimage/*.AppImage` |
 
 ## CLI
 
@@ -54,16 +68,19 @@ See `TerraForgeRust/README.md` for the full CLI reference.
 
 ## Workspace layout
 ```
-TerraForgeRust/
-├── Cargo.toml          # workspace = [core, cli, tauri/src-tauri]
-├── core/               # terraforge-core (lib) — noise, erosion, biomes, scatter, roads, combine, upscale, brush, mesh, io
-├── cli/                # terraforge-cli (bin)
-└── tauri/src-tauri/    # terraforge-tauri (bin) — Tauri 2 shell with 14 tf_* commands
-    ├── icons/          # icon.ico, icon.icns, 32x32.png, 128x128.png, Square*Logo.png
-    ├── capabilities/
-    ├── tauri.conf.json
-    └── src/main.rs
-frontend/               # React UI (shared with the web app)
+TerraForge-tauri/
+├── build.ps1 / build.sh          # one-shot build scripts
+├── frontend/                     # React UI (shared with the web app)
+└── TerraForgeRust/
+    ├── BUILD.md                  # troubleshooting reference
+    ├── Cargo.toml                # workspace = [core, cli, tauri/src-tauri]
+    ├── core/                     # terraforge-core (lib) — noise, erosion, biomes, scatter, roads, combine, upscale, brush, mesh, io
+    ├── cli/                      # terraforge-cli (bin)
+    └── tauri/src-tauri/          # terraforge-tauri (bin) — Tauri 2 shell with 14 tf_* commands
+        ├── icons/                # icon.ico, icon.icns, 32x32.png, 128x128.png, Square*Logo.png (Windows Store)
+        ├── capabilities/
+        ├── tauri.conf.json
+        └── src/main.rs
 ```
 
 ## Exposed Tauri commands (`tf_*`)
