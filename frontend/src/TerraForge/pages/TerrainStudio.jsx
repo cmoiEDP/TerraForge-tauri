@@ -10,6 +10,7 @@ import RoadPanel from "@/TerraForge/components/RoadPanel";
 import CombinePanel from "@/TerraForge/components/CombinePanel";
 import { generateHeightmap, erode, upscaleWithDetail } from "@/TerraForge/lib/terrainGen";
 import { exportR16, exportPNG8, exportPNGRGBA, parseImageFile, parseR16File } from "@/TerraForge/lib/heightmap";
+import { exportWaterMaskPNG } from "@/TerraForge/lib/waterMask";
 import { PRESETS, getPresetParams } from "@/TerraForge/lib/presets";
 import { computeBiomeSplatmap, DEFAULT_BIOME_PARAMS, computeSlopeMap } from "@/TerraForge/lib/biomes";
 import { scatterPoints, rasterizeDotMap, rasterizeDotMapGrayscale, DEFAULT_SCATTER_LAYERS } from "@/TerraForge/lib/scatter";
@@ -562,13 +563,25 @@ export default function TerrainStudio() {
                 <option value={30720}>30720 · 30K 💀 RIP RAM</option>
               </select>
               {graphResult && (
-                <button
-                  className="btn-primary w-full mt-3"
-                  onClick={() => { exportR16(graphResult.data, `graph_${graphResult.size}.r16`); toast.success(`Exported graph_${graphResult.size}.r16`); }}
-                  data-testid="graph-export-r16"
-                >
-                  ⤓ Export .r16
-                </button>
+                <>
+                  <button
+                    className="btn-primary w-full mt-3"
+                    onClick={() => { exportR16(graphResult.data, `graph_${graphResult.size}.r16`); toast.success(`Exported graph_${graphResult.size}.r16`); }}
+                    data-testid="graph-export-r16"
+                  >
+                    ⤓ Export .r16
+                  </button>
+                  <button
+                    className="btn-ghost w-full mt-2"
+                    onClick={() => {
+                      exportWaterMaskPNG(graphResult.data, graphResult.size, `water_mask_${graphResult.size}.png`);
+                      toast.success(`Exported water_mask_${graphResult.size}.png  ·  rose=sea  blue=lake  cyan=river`);
+                    }}
+                    data-testid="graph-export-watermask"
+                  >
+                    ⤓ Export Water Mask
+                  </button>
+                </>
               )}
             </div>
             <div className="panel p-4 flex-1 overflow-y-auto scrollbar-thin">

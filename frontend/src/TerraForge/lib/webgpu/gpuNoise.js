@@ -42,9 +42,17 @@ struct Params {
 @group(0) @binding(1) var<storage, read_write> output: array<f32>;
 
 fn hash2(p: vec2<f32>, seed: u32) -> f32 {
-  let s = f32(seed) * 0.0001;
-  let x = sin(dot(p + vec2<f32>(s, s * 1.3), vec2<f32>(127.1, 311.7))) * 43758.5453;
-  return fract(x);
+  // PCG-style integer hash on the floor() coordinates — avoids sin() precision loss at large p.
+  let ip = vec2<i32>(floor(p));
+  let mx = u32(ip.x + 65536);
+  let my = u32(ip.y + 65536);
+  var h: u32 = mx * 1597334677u + my * 3812015801u + seed * 2654435761u;
+  h = h ^ (h >> 16u);
+  h = h * 2246822519u;
+  h = h ^ (h >> 13u);
+  h = h * 3266489917u;
+  h = h ^ (h >> 16u);
+  return f32(h) / 4294967295.0;
 }
 
 fn smooth_step3(t: f32) -> f32 {
@@ -73,9 +81,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let x = f32(gid.x);
   let y = f32(gid.y);
 
-  // domain warp
-  let wx = vnoise(vec2<f32>(x, y) * params.scale * 0.5, params.seed + 1u) * params.warp * 200.0;
-  let wy = vnoise(vec2<f32>(x + 100.0, y + 100.0) * params.scale * 0.5, params.seed + 2u) * params.warp * 200.0;
+  // domain warp — bounded offsets so we don't blow up at high size
+  let wx = vnoise(vec2<f32>(x, y) * params.scale * 0.5, params.seed + 1u) * params.warp * 80.0;
+  let wy = vnoise(vec2<f32>(x + 100.0, y + 100.0) * params.scale * 0.5, params.seed + 2u) * params.warp * 80.0;
 
   var amp: f32 = 1.0;
   var freq: f32 = 1.0;

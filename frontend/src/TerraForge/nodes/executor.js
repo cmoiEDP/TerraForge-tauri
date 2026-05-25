@@ -8,16 +8,18 @@ import { combineHeightmaps } from "@/TerraForge/lib/combine";
 import { riverMask, seaMask, lakeMask, rainAccumulation } from "@/TerraForge/lib/water";
 import { scatterPoints } from "@/TerraForge/lib/scatter";
 import { computeSlopeMap } from "@/TerraForge/lib/biomes";
+import { generateGeoTerrain, plateCountForSize } from "@/TerraForge/lib/geology";
+import { classifyWater } from "@/TerraForge/lib/waterMask";
 
 export const NODE_CATEGORIES = [
-  { id: "generation", label: "Generation", nodes: ["noise", "shape", "warp"] },
+  { id: "generation", label: "Generation", nodes: ["noise", "geoterrain", "shape", "warp"] },
   { id: "terrain",    label: "Terrain",    nodes: ["erode", "blur", "terrace", "curve", "clip", "normalize"] },
   { id: "combine",    label: "Combine",    nodes: ["combine", "mask"] },
   {
     id: "simulation",
     label: "Simulation",
     subcategories: [
-      { id: "water",      label: "Water",      nodes: ["river", "lake", "sea", "rain"] },
+      { id: "water",      label: "Water",      nodes: ["river", "lake", "sea", "rain", "watermask"] },
       { id: "vegetation", label: "Vegetation", nodes: ["trees", "bushes", "rocks"] },
     ],
   },
@@ -33,6 +35,22 @@ export const NODE_DEFS = {
       seed: 1337, scale: 0.0018, octaves: 7, persistence: 0.5,
       lacunarity: 2.0, ridgeBlend: 0.4, warp: 0.3, exponent: 1.4,
       useGPU: true,
+    },
+  },
+  geoterrain: {
+    label: "GeoTerrain",
+    inputs: [],
+    output: "heightmap",
+    defaults: {
+      seed: 1337,
+      plateCount: 0, // 0 = auto-derive from size for true continuity
+      continentBias: 0.55,
+      mountainSharpness: 1.5,
+      detailScale: 0.008,
+      detailAmplitude: 0.20,
+      riverThreshold: 80,
+      riverCarveDepth: 0.05,
+      riverWidth: 4,
     },
   },
   shape: {
@@ -136,6 +154,12 @@ export const NODE_DEFS = {
     inputs: ["heightmap"],
     output: "heightmap",
     defaults: { density: 0.25, minHeight: 0.40, maxHeight: 1.00, maxSlope: 1.00, minSpacing: 6, seed: 7, dotSize: 2 },
+  },
+  watermask: {
+    label: "WaterMask",
+    inputs: ["heightmap"],
+    output: "heightmap",
+    defaults: { seaLevel: 0.18, lakeFill: 0.04, riverThreshold: 80, enableSea: true, enableLake: true, enableRiver: true },
   },
   output: {
     label: "Output",
@@ -434,6 +458,35 @@ async function computeNode(node, inputs, size) {
         }
       }
     }
+    return out;
+  }
+  if (t === "geoterrain") {
+    const plates = p.plateCount > 0 ? p.plateCount : plateCountForSize(size);
+    return generateGeoTerrain({
+      size, seed: p.seed, plateCount: plates,
+      continentBias: p.continentBias, mountainSharpness: p.mountainSharpness,
+      detailScale: p.detailScale, detailAmplitude: p.detailAmplitude,
+      riverThreshold: p.riverThreshold, riverCarveDepth: p.riverCarveDepth,
+      riverWidth: p.riverWidth,
+    });
+  }
+  if (t === "watermask") {
+    if (!inputs[0]) throw new Error("WaterMask needs input");
+    const a = inputs[0];
+    const { cls } = classifyWater(a, size, {
+      seaLevel: p.seaLevel, lakeFill: p.lakeFill, riverThreshold: p.riverThreshold,
+      enableSea: p.enableSea, enableLake: p.enableLake, enableRiver: p.enableRiver,
+    });
+    // Re-encode class id (0..3) as small height bumps so the graph can still pipe it through
+    // (preview will look weird — meant to be exported via the dedicated Export Water Mask button).
+    // Class id is stored in the result's lower bits via height ramp: land=h, river=h+0.001, lake=h+0.002, sea=h+0.003.
+    // Downstream consumers can read the class via int round of (h * 1000) % 10.
+    const out = new Float32Array(a);
+    for (let i = 0; i < a.length; i++) {
+      if (cls[i] > 0) out[i] = Math.min(1, a[i] + cls[i] * 0.001);
+    }
+    // Attach the class array as a property for the studio to pick up (non-standard side channel).
+    out.__waterClass = cls;
     return out;
   }
   if (t === "output") {

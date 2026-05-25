@@ -56,8 +56,23 @@ function exampleEmpty() {
   };
 }
 
+function exampleGeology() {
+  // GeoTerrain (built-in tectonic+hydrology) -> Output
+  const ids = ["geoterrain", "output"].map((t) => ({ t, id: newId(t) }));
+  const xStart = 100, xStep = 320, y = 100;
+  const nodes = ids.map((x, i) => ({
+    id: x.id, type: x.t, position: { x: xStart + i * xStep, y },
+    data: { type: x.t, params: { ...NODE_DEFS[x.t].defaults } },
+  }));
+  const edges = [
+    { id: "g1", source: ids[0].id, sourceHandle: "out", target: ids[1].id, targetHandle: "in-0" },
+  ];
+  return { nodes, edges };
+}
+
 const EXAMPLES = [
-  { id: "default", label: "Basic", build: () => initialGraph() },
+  { id: "default", label: "Basic",      build: () => initialGraph() },
+  { id: "geo",     label: "Geology",    build: exampleGeology },
   { id: "water",   label: "Water Sim",  build: exampleWaterSim },
   { id: "veg",     label: "Vegetation", build: exampleVegetation },
   { id: "empty",   label: "Empty",      build: exampleEmpty },

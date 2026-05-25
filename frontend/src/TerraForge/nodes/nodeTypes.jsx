@@ -302,6 +302,48 @@ export const TreesNode  = (props) => <VegNode {...props} title="Trees" />;
 export const BushesNode = (props) => <VegNode {...props} title="Bushes" />;
 export const RocksNode  = (props) => <VegNode {...props} title="Rocks" />;
 
+// ─── Rule-based GeoTerrain (tectonic + hydrology) ───
+export function GeoTerrainNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="noise" title="GeoTerrain" hasInputs={0} selected={selected}>
+      <p className="mono text-[9px] text-[var(--ink-dim)] leading-tight mb-1">plates → faults → rivers · scales with size</p>
+      <NSlider testId={`node-${id}-geoseed`} label="Seed" value={p.seed} min={0} max={99999} step={1} onChange={(v) => data.onChange(upd(data, { seed: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-plates`} label="Plates (0=auto)" value={p.plateCount} min={0} max={120} step={1} onChange={(v) => data.onChange(upd(data, { plateCount: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-cbias`} label="Continent Bias" value={p.continentBias} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { continentBias: v }))} />
+      <NSlider testId={`node-${id}-sharp`} label="Mountain Sharp" value={p.mountainSharpness} min={0.5} max={4} step={0.05} onChange={(v) => data.onChange(upd(data, { mountainSharpness: v }))} />
+      <NSlider testId={`node-${id}-damp`} label="Detail Amount" value={p.detailAmplitude} min={0} max={0.5} step={0.01} onChange={(v) => data.onChange(upd(data, { detailAmplitude: v }))} />
+      <NSlider testId={`node-${id}-rcarve`} label="River Carve" value={p.riverCarveDepth} min={0} max={0.2} step={0.005} onChange={(v) => data.onChange(upd(data, { riverCarveDepth: v }))} />
+      <NSlider testId={`node-${id}-rwidth`} label="River Width" value={p.riverWidth} min={1} max={10} step={1} onChange={(v) => data.onChange(upd(data, { riverWidth: Math.round(v) }))} />
+    </NodeShell>
+  );
+}
+
+// ─── WaterMask (classification: rose=sea, blue=lake, cyan=river) ───
+export function WaterMaskNode({ data, selected, id }) {
+  const p = data.params;
+  return (
+    <NodeShell type="water" title="WaterMask" hasInputs={1} selected={selected}>
+      <p className="mono text-[9px] text-[var(--ink-dim)] leading-tight mb-1">rose=sea · blue=lake · cyan=river</p>
+      <NSlider testId={`node-${id}-wmsea`} label="Sea Level" value={p.seaLevel} min={0} max={0.6} step={0.01} onChange={(v) => data.onChange(upd(data, { seaLevel: v }))} />
+      <NSlider testId={`node-${id}-wmlake`} label="Lake Fill" value={p.lakeFill} min={0.005} max={0.15} step={0.005} onChange={(v) => data.onChange(upd(data, { lakeFill: v }))} />
+      <NSlider testId={`node-${id}-wmriver`} label="River Thresh" value={p.riverThreshold} min={10} max={500} step={5} onChange={(v) => data.onChange(upd(data, { riverThreshold: Math.round(v) }))} />
+      <label className="flex items-center gap-1.5 cursor-pointer nodrag" onMouseDown={(e) => e.stopPropagation()}>
+        <input type="checkbox" className="nodrag" checked={p.enableSea}   onChange={(e) => data.onChange(upd(data, { enableSea:   e.target.checked }))} data-testid={`node-${id}-en-sea`} />
+        <span className="mono text-[9px]">Sea</span>
+      </label>
+      <label className="flex items-center gap-1.5 cursor-pointer nodrag" onMouseDown={(e) => e.stopPropagation()}>
+        <input type="checkbox" className="nodrag" checked={p.enableLake}  onChange={(e) => data.onChange(upd(data, { enableLake:  e.target.checked }))} data-testid={`node-${id}-en-lake`} />
+        <span className="mono text-[9px]">Lake</span>
+      </label>
+      <label className="flex items-center gap-1.5 cursor-pointer nodrag" onMouseDown={(e) => e.stopPropagation()}>
+        <input type="checkbox" className="nodrag" checked={p.enableRiver} onChange={(e) => data.onChange(upd(data, { enableRiver: e.target.checked }))} data-testid={`node-${id}-en-river`} />
+        <span className="mono text-[9px]">River</span>
+      </label>
+    </NodeShell>
+  );
+}
+
 export const NODE_COMPONENTS = {
   noise: NoiseNode,
   shape: ShapeNode,
@@ -318,6 +360,8 @@ export const NODE_COMPONENTS = {
   lake: LakeNode,
   sea: SeaNode,
   rain: RainNode,
+  geoterrain: GeoTerrainNode,
+  watermask: WaterMaskNode,
   trees: TreesNode,
   bushes: BushesNode,
   rocks: RocksNode,
