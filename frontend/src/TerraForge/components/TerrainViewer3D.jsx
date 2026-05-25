@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { biomeColorAt, DEFAULT_BIOME_PARAMS } from "@/TerraForge/lib/biomes";
 
@@ -44,12 +44,29 @@ export default function TerrainViewer3D({
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
+  const [mountSize, setMountSize] = useState({ w: 0, h: 0 });
+
+  // Observe mount element to know when it has a non-zero size (handles delayed grid layout)
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+    const update = () => {
+      const w = mount.clientWidth;
+      const h = mount.clientHeight;
+      setMountSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(mount);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
-    const width = mount.clientWidth;
-    const height = mount.clientHeight;
+    const width = mountSize.w;
+    const height = mountSize.h;
+    if (width <= 0 || height <= 0) return; // wait for layout
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0d0e);
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 100);
@@ -138,7 +155,7 @@ export default function TerrainViewer3D({
       if (mount.contains(dom)) mount.removeChild(dom);
       renderer.dispose();
     };
-  }, []);
+  }, [mountSize.w, mountSize.h]);
 
   // build/refresh terrain mesh
   useEffect(() => {
@@ -225,7 +242,7 @@ export default function TerrainViewer3D({
     const mesh = new THREE.Mesh(geom, mat);
     mesh.name = "terrain";
     scene.add(mesh);
-  }, [data, size, heightScale, wireframe, biomeParams, roadOverlay, scatterOverlay, previewSize, version]);
+  }, [data, size, heightScale, wireframe, biomeParams, roadOverlay, scatterOverlay, previewSize, version, mountSize.w, mountSize.h]);
 
   return (
     <div

@@ -30,6 +30,7 @@ const headerColors = {
   combine: "#9b7fb6",
   mask: "#b65f5f",
   water: "#4aa3d9",
+  vegetation: "#7fb05c",
   output: "#5fb87a",
 };
 
@@ -283,6 +284,24 @@ export function RainNode({ data, selected, id }) {
   );
 }
 
+// ─── Vegetation scatter nodes ───
+function VegNode({ data, selected, id, title }) {
+  const p = data.params;
+  return (
+    <NodeShell type="vegetation" title={title} hasInputs={1} selected={selected}>
+      <NSlider testId={`node-${id}-density`} label="Density" value={p.density} min={0.05} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { density: v }))} />
+      <NSlider testId={`node-${id}-minh`} label="Min Height" value={p.minHeight} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { minHeight: v }))} />
+      <NSlider testId={`node-${id}-maxh`} label="Max Height" value={p.maxHeight} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { maxHeight: v }))} />
+      <NSlider testId={`node-${id}-maxs`} label="Max Slope" value={p.maxSlope} min={0} max={1} step={0.01} onChange={(v) => data.onChange(upd(data, { maxSlope: v }))} />
+      <NSlider testId={`node-${id}-spacing`} label="Spacing" value={p.minSpacing} min={1} max={32} step={1} onChange={(v) => data.onChange(upd(data, { minSpacing: Math.round(v) }))} />
+      <NSlider testId={`node-${id}-dotSize`} label="Dot Size" value={p.dotSize} min={0} max={5} step={1} onChange={(v) => data.onChange(upd(data, { dotSize: Math.round(v) }))} />
+    </NodeShell>
+  );
+}
+export const TreesNode  = (props) => <VegNode {...props} title="Trees" />;
+export const BushesNode = (props) => <VegNode {...props} title="Bushes" />;
+export const RocksNode  = (props) => <VegNode {...props} title="Rocks" />;
+
 export const NODE_COMPONENTS = {
   noise: NoiseNode,
   shape: ShapeNode,
@@ -299,5 +318,8 @@ export const NODE_COMPONENTS = {
   lake: LakeNode,
   sea: SeaNode,
   rain: RainNode,
+  trees: TreesNode,
+  bushes: BushesNode,
+  rocks: RocksNode,
   output: OutputNode,
 };

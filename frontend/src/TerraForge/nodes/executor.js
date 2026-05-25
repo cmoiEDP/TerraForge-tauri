@@ -6,6 +6,23 @@ import { generateHeightmapGPU, isWebGPUAvailable } from "@/TerraForge/lib/webgpu
 import { applyPresetShape } from "@/TerraForge/lib/shapes";
 import { combineHeightmaps } from "@/TerraForge/lib/combine";
 import { riverMask, seaMask, lakeMask, rainAccumulation } from "@/TerraForge/lib/water";
+import { scatterPoints } from "@/TerraForge/lib/scatter";
+import { computeSlopeMap } from "@/TerraForge/lib/biomes";
+
+export const NODE_CATEGORIES = [
+  { id: "generation", label: "Generation", nodes: ["noise", "shape", "warp"] },
+  { id: "terrain",    label: "Terrain",    nodes: ["erode", "blur", "terrace", "curve", "clip", "normalize"] },
+  { id: "combine",    label: "Combine",    nodes: ["combine", "mask"] },
+  {
+    id: "simulation",
+    label: "Simulation",
+    subcategories: [
+      { id: "water",      label: "Water",      nodes: ["river", "lake", "sea", "rain"] },
+      { id: "vegetation", label: "Vegetation", nodes: ["trees", "bushes", "rocks"] },
+    ],
+  },
+  { id: "output", label: "Output", nodes: ["output"] },
+];
 
 export const NODE_DEFS = {
   noise: {
@@ -102,6 +119,24 @@ export const NODE_DEFS = {
     output: "heightmap",
     defaults: { intensity: 1.0, erodeWeight: 0.0 },
   },
+  trees: {
+    label: "Trees",
+    inputs: ["heightmap"],
+    output: "heightmap",
+    defaults: { density: 0.6, minHeight: 0.10, maxHeight: 0.70, maxSlope: 0.55, minSpacing: 8, seed: 11, dotSize: 2 },
+  },
+  bushes: {
+    label: "Bushes",
+    inputs: ["heightmap"],
+    output: "heightmap",
+    defaults: { density: 0.4, minHeight: 0.05, maxHeight: 0.55, maxSlope: 0.70, minSpacing: 4, seed: 23, dotSize: 1 },
+  },
+  rocks: {
+    label: "Rocks",
+    inputs: ["heightmap"],
+    output: "heightmap",
+    defaults: { density: 0.25, minHeight: 0.40, maxHeight: 1.00, maxSlope: 1.00, minSpacing: 6, seed: 7, dotSize: 2 },
+  },
   output: {
     label: "Output",
     inputs: ["heightmap"],
@@ -114,6 +149,8 @@ function dependencyOrder(nodes, edges, terminalId) {
   const upstream = new Map();
   for (const n of nodes) upstream.set(n.id, []);
   for (const e of edges) {
+    // Defensive: skip orphan edges that reference deleted/missing nodes
+    if (!upstream.has(e.target) || !upstream.has(e.source)) continue;
     const targetSlot = parseInt(e.targetHandle?.replace("in-", "") || "0", 10);
     upstream.get(e.target).push({ sourceId: e.source, slot: targetSlot });
   }
@@ -366,6 +403,35 @@ async function computeNode(node, inputs, size) {
     if (w > 0) {
       for (let i = 0; i < a.length; i++) {
         out[i] = Math.max(0, a[i] - acc[i] * w);
+      }
+    }
+    return out;
+  }
+  if (t === "trees" || t === "bushes" || t === "rocks") {
+    if (!inputs[0]) throw new Error(`${t} needs heightmap input`);
+    const h = inputs[0];
+    const slope = computeSlopeMap(h, size);
+    const layer = {
+      enabled: true,
+      density: p.density,
+      minHeight: p.minHeight,
+      maxHeight: p.maxHeight,
+      maxSlope: p.maxSlope,
+      minSpacing: p.minSpacing,
+      seed: p.seed,
+    };
+    const pts = scatterPoints(h, slope, size, layer);
+    // Output: copy heightmap, mark scatter points with bumps so it's visible (no destructive change to terrain)
+    const out = new Float32Array(h);
+    const r = Math.max(1, p.dotSize | 0);
+    for (const [px, py] of pts) {
+      for (let oy = -r; oy <= r; oy++) {
+        for (let ox = -r; ox <= r; ox++) {
+          const nx = px + ox, ny = py + oy;
+          if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+          // tiny visual bump (~2% height), keeps heightmap usable but markers show
+          out[ny * size + nx] = Math.min(1, h[ny * size + nx] + 0.02);
+        }
       }
     }
     return out;
